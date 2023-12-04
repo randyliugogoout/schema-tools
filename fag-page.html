@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <title>- FAQ Page - Schema Generator</title>
+    <style>
+      #container {
+        margin: auto;
+      }
+
+      #uploader__wrapper {
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      #generator-btn {
+        width: 100px;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      #result {
+        margin-top: 2rem;
+        width: 100%;
+        min-height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <h1>FAQ Schema Generator</h1>
+      <div id="uploader__wrapper">
+        <input id="uploader__csv-file" type="file" accept=".csv" />
+
+        <button id="generator-btn">產生</button>
+      </div>
+      <textarea id="result" disabled></textarea>
+    </div>
+
+    <script>
+      function parseCSVFile(file) {
+        return new Promise((resolve, reject) => {
+          try {
+            Papa.parse(file, {
+              complete: function (results) {
+                resolve(results.data);
+              },
+            });
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      function generateFAQPage(data) {
+        // 創建 FAQPage 的 schema
+        const faqPage = {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [],
+        };
+
+        // 遍曆 CSV 數據生成 HTML 和 schema
+        data.forEach((item) => {
+          const question = item["Question"];
+          const answer = item["Answer"];
+
+          // 添加到 FAQPage 的 schema 中
+          faqPage.mainEntity.push({
+            "@type": "Question",
+            name: question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: answer,
+            },
+            suggestedAnswer: {
+              "@type": "Answer",
+              text: answer,
+            },
+          });
+        });
+
+        // 輸出 FAQPage 的 schema
+        return JSON.stringify(faqPage, null, 2);
+      }
+
+      const generate = async () => {
+        if (file) {
+          try {
+            const data = await parseCSVFile(file);
+            const result = generateFAQPage(
+              data.map((item) => ({
+                Question: item[0] ?? "",
+                Answer: item[1] ?? "",
+              }))
+            );
+
+            document.getElementById("result").value = result;
+          } catch {}
+        }
+      };
+
+      let file;
+      const fileElem = document.getElementById("uploader__csv-file");
+      fileElem.addEventListener("change", (e) => {
+        file = e.target.files[0]; // File Object (Special Blob)
+      });
+
+      const generateBtnElem = document.getElementById("generator-btn");
+      generateBtnElem.addEventListener("click", generate);
+    </script>
+  </body>
+</html>
